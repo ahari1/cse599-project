@@ -1,0 +1,4 @@
+conda_env/
+data.csv
+__pycache__/
+*.pyc
