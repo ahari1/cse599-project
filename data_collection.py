@@ -168,7 +168,7 @@ class DataCollector:
         return header
 
     def run(self):
-        print("Start data coll")
+        print(f"[{self.variability}] Starting data collection: {self.num_iterations} iterations x {self.steps_per_iteration} steps -> {self.output_file}")
 
         with open(self.output_file, "w", newline="") as f:
             writer = csv.writer(f)
@@ -178,6 +178,10 @@ class DataCollector:
             total_samples = 0
 
             for iteration in range(self.num_iterations):
+                if iteration % 50 == 0:
+                    pct = 100 * iteration / self.num_iterations
+                    cr = (total_contacts / total_samples * 100) if total_samples > 0 else 0.0
+                    print(f"  iter {iteration:>4}/{self.num_iterations}  ({pct:5.1f}%)  contact_rate={cr:.1f}%")
 
                 # Reset
                 self._reset_arm()
@@ -226,7 +230,12 @@ class DataCollector:
                     total_contacts += in_contact
                     total_samples += 1
 
-        print("Data coll done")
+                # Flush periodically so partial results are saved on early exit
+                if iteration % 10 == 0:
+                    f.flush()
+
+        contact_rate = total_contacts / total_samples if total_samples > 0 else 0.0
+        print(f"[{self.variability}] Done. {total_samples} samples, contact rate: {contact_rate*100:.2f}%  -> {self.output_file}")
 
 
 def main():
