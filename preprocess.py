@@ -34,8 +34,11 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
 
-# Columns we always drop before building feature matrix
-_DROP_COLS = ["step", "variability_level", "contact_force"]
+# Columns we always drop before building feature matrix.
+# contact_force / obstacle_contact / obstacle_force are ground-truth signals
+# that would cause label leakage if left as input features.
+_DROP_COLS = ["step", "variability_level",
+              "contact_force", "obstacle_contact", "obstacle_force"]
 _ITER_COL  = "iteration"
 _LABEL_COL = "in_contact"
 

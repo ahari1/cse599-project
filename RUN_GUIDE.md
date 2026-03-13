@@ -8,7 +8,21 @@ Ensure your conda environment is active before running any scripts.
 conda activate ./conda_env
 ```
 
-## 1. Data Generation
+## Option A: Automated Pipeline (Recommended)
+You can run the entire pipeline—from data collection to visualization—with a single command. Use the `--collect` flag if you haven't generated the CSV data yet.
+
+```bash
+# Collect data + Run Full Pipeline (500 iterations per tier)
+python run_pipeline.py --collect --iterations 500 --steps 150
+
+# If CSV data already exists, simply run:
+python run_pipeline.py
+```
+
+## Option B: Manual Step-by-Step
+If you prefer to run or debug individual stages, follow these steps:
+
+### 1. Data Generation
 Collect robot telemetry data for all variability tiers. The arguments are `<iterations>` and `<steps>`.
 ```bash
 # Collect 500 episodes per tier

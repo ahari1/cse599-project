@@ -1,14 +1,106 @@
 {
-  "smoke": {
-    "smoke": {
-      "accuracy": 0.7826,
-      "precision": 0.7679,
-      "recall": 0.7818,
-      "f1": 0.7748,
-      "auc_roc": 0.8745,
-      "n_test": 115,
-      "contact_rate_test": 0.4783,
+  "low": {
+    "low": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "auc_roc": null,
+      "n_test": 1496,
+      "contact_rate_test": 1.0,
+      "n_predicted_contact": 1496,
+      "in_distribution": true
+    },
+    "medium": {
+      "accuracy": 0.6497,
+      "precision": 0.6497,
+      "recall": 1.0,
+      "f1": 0.7877,
+      "auc_roc": 0.5,
+      "n_test": 1496,
+      "contact_rate_test": 0.6497,
+      "n_predicted_contact": 1496,
+      "in_distribution": false
+    },
+    "high": {
+      "accuracy": 0.1738,
+      "precision": 0.1738,
+      "recall": 1.0,
+      "f1": 0.2961,
+      "auc_roc": 0.5,
+      "n_test": 1496,
+      "contact_rate_test": 0.1738,
+      "n_predicted_contact": 1496,
+      "in_distribution": false
+    }
+  },
+  "medium": {
+    "low": {
+      "accuracy": 0.871,
+      "precision": 1.0,
+      "recall": 0.871,
+      "f1": 0.931,
+      "auc_roc": null,
+      "n_test": 1496,
+      "contact_rate_test": 1.0,
+      "n_predicted_contact": 1303,
+      "in_distribution": false
+    },
+    "medium": {
+      "accuracy": 0.7473,
+      "precision": 0.797,
+      "recall": 0.82,
+      "f1": 0.8083,
+      "auc_roc": 0.786,
+      "n_test": 1496,
+      "contact_rate_test": 0.6497,
+      "n_predicted_contact": 1000,
+      "in_distribution": true
+    },
+    "high": {
+      "accuracy": 0.5194,
+      "precision": 0.2508,
+      "recall": 0.8885,
+      "f1": 0.3912,
+      "auc_roc": 0.6836,
+      "n_test": 1496,
+      "contact_rate_test": 0.1738,
+      "n_predicted_contact": 921,
+      "in_distribution": false
+    }
+  },
+  "high": {
+    "low": {
+      "accuracy": 0.0374,
+      "precision": 1.0,
+      "recall": 0.0374,
+      "f1": 0.0722,
+      "auc_roc": null,
+      "n_test": 1496,
+      "contact_rate_test": 1.0,
       "n_predicted_contact": 56,
+      "in_distribution": false
+    },
+    "medium": {
+      "accuracy": 0.3703,
+      "precision": 0.7344,
+      "recall": 0.0484,
+      "f1": 0.0907,
+      "auc_roc": 0.6109,
+      "n_test": 1496,
+      "contact_rate_test": 0.6497,
+      "n_predicted_contact": 64,
+      "in_distribution": false
+    },
+    "high": {
+      "accuracy": 0.8783,
+      "precision": 0.7241,
+      "recall": 0.4846,
+      "f1": 0.5806,
+      "auc_roc": 0.8832,
+      "n_test": 1496,
+      "contact_rate_test": 0.1738,
+      "n_predicted_contact": 174,
       "in_distribution": true
     }
   }
