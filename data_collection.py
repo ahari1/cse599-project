@@ -18,6 +18,8 @@ TIER_CONFIG = {
         "obj_z":   (0.05, 0.05),
         # Block orientation (yaw) range, radians
         "obj_yaw": (0.0, 0.0),              # fixed orientation
+        # Jitter added to each joint's home angle at episode start
+        "arm_jitter": 0.02,
         # Gaussian std dev added to IK waypoint target positions
         "path_noise": 0.0,
         # Probability per episode that an obstacle is spawned in the arm's path
@@ -30,6 +32,7 @@ TIER_CONFIG = {
         "obj_theta": (-np.pi / 2, np.pi / 2),   # 180° forward hemisphere
         "obj_z":   (0.05, 0.15),
         "obj_yaw": (-np.pi / 6, np.pi / 6),
+        "arm_jitter": 0.15,
         "path_noise": 0.015,
         "obstacle_prob": 0.0,
         "no_object_prob": 0.15,
@@ -39,6 +42,7 @@ TIER_CONFIG = {
         "obj_theta": (-np.pi, np.pi),            # full 360° — Kuka base joint handles this
         "obj_z":   (0.05, 0.25),
         "obj_yaw": (-np.pi, np.pi),
+        "arm_jitter": 0.40,
         "path_noise": 0.04,
         # 50% of episodes have an obstacle placed directly in the arm's path
         "obstacle_prob": 0.5,
@@ -151,10 +155,12 @@ class DataCollector:
         return obj_id
 
     def _reset_arm(self):
-        """Reset every joint to its home angle (no jitter)."""
+        """Reset every joint to its home angle, with per-tier jitter."""
+        jitter = self.cfg["arm_jitter"]
         for j_idx, home_angle in zip(self.joint_indices, HOME_JOINTS):
-            p.resetJointState(self.kukaId, j_idx, home_angle)
-            p.resetJointState(self.kukaId, j_idx, home_angle, 0.0)
+            angle = home_angle + random.uniform(-jitter, jitter)
+            p.resetJointState(self.kukaId, j_idx, angle)
+            p.resetJointState(self.kukaId, j_idx, angle, 0.0)
 
     def _settle(self, steps: int):
         for _ in range(steps):
@@ -296,7 +302,7 @@ class DataCollector:
             total_samples = 0
 
             for iteration in range(self.num_iterations):
-                if iteration % 50 == 0:
+                if iteration % 10 == 0:
                     pct = 100 * iteration / self.num_iterations
                     cr = (total_contacts / total_samples * 100) if total_samples > 0 else 0.0
                     print(f"  iter {iteration:>4}/{self.num_iterations}  ({pct:5.1f}%)  contact_rate={cr:.1f}%")
@@ -320,9 +326,16 @@ class DataCollector:
                 if self.obstacleId is not None:
                     p.removeBody(self.obstacleId)
                     self.obstacleId = None
-                if not is_free_motion and random.random() < self.cfg["obstacle_prob"]:
+                has_obstacle = (not is_free_motion and
+                                random.random() < self.cfg["obstacle_prob"])
+                if has_obstacle:
                     self.obstacleId = self._spawn_obstacle(block_pos)
                     self._settle(10)  # let the obstacle settle before planning
+
+                if iteration % 10 == 0:
+                    episode_type = "free-motion" if is_free_motion else (
+                        "contact+obstacle" if has_obstacle else "contact")
+                    print(f"         episode_type={episode_type}")
 
                 # Plan motion: free-motion goes to a random target; otherwise use waypoints
                 if is_free_motion:
