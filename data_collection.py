@@ -12,37 +12,38 @@ import argparse
 # Note: I asked Gemini for the configs, so these may not be the best for testing
 TIER_CONFIG = {
     "low": {
-        # Block placement (x,y) ranges
-        "obj_x": (0.50, 0.50),
-        "obj_y": (0.00, 0.00),
-        "obj_z": (0.05, 0.05),
+        # Block placement in polar coords: r=radius from robot base, theta=angle (radians)
+        "obj_r":   (0.50, 0.50),
+        "obj_theta": (0.0, 0.0),            # fixed straight-ahead
+        "obj_z":   (0.05, 0.05),
         # Block orientation (yaw) range, radians
-        "obj_yaw": (0.0, 0.0),         # fixed orientation
-        # Jitter added to each joint's home angle at episode start
-        "arm_jitter": 0.02,
+        "obj_yaw": (0.0, 0.0),              # fixed orientation
         # Gaussian std dev added to IK waypoint target positions
         "path_noise": 0.0,
         # Probability per episode that an obstacle is spawned in the arm's path
         "obstacle_prob": 0.0,
+        # Probability per episode that NO target block is spawned (free-motion episode)
+        "no_object_prob": 0.0,
     },
     "medium": {
-        "obj_x": (0.40, 0.70),
-        "obj_y": (-0.15, 0.15),
-        "obj_z": (0.05, 0.15),
+        "obj_r":   (0.40, 0.70),
+        "obj_theta": (-np.pi / 2, np.pi / 2),   # 180° forward hemisphere
+        "obj_z":   (0.05, 0.15),
         "obj_yaw": (-np.pi / 6, np.pi / 6),
-        "arm_jitter": 0.15,
         "path_noise": 0.015,
         "obstacle_prob": 0.0,
+        "no_object_prob": 0.15,
     },
     "high": {
-        "obj_x": (0.30, 0.80),
-        "obj_y": (-0.30, 0.30),
-        "obj_z": (0.05, 0.25),
+        "obj_r":   (0.30, 0.80),
+        "obj_theta": (-np.pi, np.pi),            # full 360° — Kuka base joint handles this
+        "obj_z":   (0.05, 0.25),
         "obj_yaw": (-np.pi, np.pi),
-        "arm_jitter": 0.40,
         "path_noise": 0.04,
-        # 50 % of episodes have an obstacle placed directly in the arm's path
+        # 50% of episodes have an obstacle placed directly in the arm's path
         "obstacle_prob": 0.5,
+        # 25% of episodes are free-motion (no target block)
+        "no_object_prob": 0.25,
     },
 }
 
@@ -87,12 +88,32 @@ class DataCollector:
         self._settle(30)
 
     def _sample_block_pose(self):
-        obj_x = random.uniform(*self.cfg["obj_x"])
-        obj_y = random.uniform(*self.cfg["obj_y"])
+        """Sample block (x, y) from a circle using polar coordinates.
+
+        This matches the robot's circular reachable workspace better than
+        independent x/y rectangular ranges.
+        """
+        r     = random.uniform(*self.cfg["obj_r"])
+        theta = random.uniform(*self.cfg["obj_theta"])
+        obj_x = r * np.cos(theta)
+        obj_y = r * np.sin(theta)
         obj_z = random.uniform(*self.cfg["obj_z"])
-        yaw = random.uniform(*self.cfg["obj_yaw"])
+        yaw   = random.uniform(*self.cfg["obj_yaw"])
         orientation = p.getQuaternionFromEuler([0.0, 0.0, yaw])
         return [obj_x, obj_y, obj_z], orientation
+
+    def _sample_free_target(self):
+        """Sample a random reachable Cartesian target for free-motion episodes.
+
+        Uses the same polar range as block placement so the arm moves in a
+        similar region — just with no block to contact at the end.
+        """
+        r     = random.uniform(*self.cfg["obj_r"])
+        theta = random.uniform(*self.cfg["obj_theta"])
+        x = r * np.cos(theta)
+        y = r * np.sin(theta)
+        z = random.uniform(0.10, HOVER_HEIGHT)  # somewhere in the vertical workspace
+        return self._add_noise([x, y, z])
 
     def _spawn_block(self):
         pos, orn = self._sample_block_pose()
@@ -100,32 +121,40 @@ class DataCollector:
         return obj_id
 
     def _reset_block(self):
-        p.removeBody(self.objectId)
+        if self.objectId is not None:
+            p.removeBody(self.objectId)
         self.objectId = self._spawn_block()
         # Obstacle lifecycle is managed per-episode in run(), not here.
 
     def _spawn_obstacle(self, block_pos):
-        """Place a sphere obstacle somewhere along the straight-line path
-        from the robot base (origin) to the block.
+        """Place a sphere obstacle in polar coordinates along the robot→block direction.
 
-        t in [0.3, 0.7] ensures the obstacle is in the middle section of the
-        path — close enough to the robot to be in the way, but not so close
-        that it sits right next to the base or the block.
+        Computes the block's (r, theta) from its Cartesian position, then places
+        the obstacle at a fraction t ∈ [0.3, 0.7] of that radius along the same
+        bearing — guaranteed to be in the arm's path and consistent with the
+        polar block-placement scheme.
         """
-        t = random.uniform(0.3, 0.7)
-        obs_x = t * block_pos[0] + random.gauss(0, 0.03)
-        obs_y = t * block_pos[1] + random.gauss(0, 0.03)
+        bx, by = block_pos[0], block_pos[1]
+        block_r     = np.sqrt(bx ** 2 + by ** 2)
+        block_theta = np.arctan2(by, bx)
+
+        t     = random.uniform(0.3, 0.7)
+        obs_r = t * block_r
+        # Small angular jitter so the obstacle isn't always dead-centre on the path
+        obs_theta = block_theta + random.uniform(-0.08, 0.08)  # ~±4.5°
+
+        obs_x = obs_r * np.cos(obs_theta)
+        obs_y = obs_r * np.sin(obs_theta)
         obs_z = 0.10  # sphere rests slightly above the ground plane
         orn = p.getQuaternionFromEuler([0, 0, 0])
         obj_id = p.loadURDF("sphere_small.urdf", [obs_x, obs_y, obs_z], orn, globalScaling=2.0)
         return obj_id
 
     def _reset_arm(self):
-        jitter = self.cfg["arm_jitter"]
+        """Reset every joint to its home angle (no jitter)."""
         for j_idx, home_angle in zip(self.joint_indices, HOME_JOINTS):
-            angle = home_angle + random.uniform(-jitter, jitter)
-            p.resetJointState(self.kukaId, j_idx, angle)
-            p.resetJointState(self.kukaId, j_idx, angle, 0.0)
+            p.resetJointState(self.kukaId, j_idx, home_angle)
+            p.resetJointState(self.kukaId, j_idx, home_angle, 0.0)
 
     def _settle(self, steps: int):
         for _ in range(steps):
@@ -177,15 +206,16 @@ class DataCollector:
         return position, orientation
 
     def _check_contact(self):
-        # Outputs contact info with the TARGET object
-        contacts_target = p.getContactPoints(bodyA=self.kukaId, bodyB=self.objectId)
+        # Contact with target object (always 0 when no object present)
         in_contact = 0
         total_force = 0.0
-        if contacts_target and len(contacts_target) > 0:
-            in_contact = 1
-            total_force = sum(pt[9] for pt in contacts_target)
+        if self.objectId is not None:
+            contacts_target = p.getContactPoints(bodyA=self.kukaId, bodyB=self.objectId)
+            if contacts_target and len(contacts_target) > 0:
+                in_contact = 1
+                total_force = sum(pt[9] for pt in contacts_target)
 
-        # Also check obstacle contact (0 when no obstacle exists)
+        # Obstacle contact (0 when no obstacle exists)
         obstacle_contact = 0
         obstacle_force = 0.0
         if self.obstacleId is not None:
@@ -276,18 +306,30 @@ class DataCollector:
                 self._reset_block()
                 self._settle(30)
 
-                block_pos = self._get_block_position()
+                # --- Per-episode: decide whether to skip block (free-motion) ---
+                is_free_motion = random.random() < self.cfg["no_object_prob"]
+                if is_free_motion:
+                    # Remove the block that was just spawned; arm will move freely
+                    if self.objectId is not None:
+                        p.removeBody(self.objectId)
+                        self.objectId = None
+                else:
+                    block_pos = self._get_block_position()
 
                 # Per-episode obstacle: remove any previous, maybe spawn a new one
                 if self.obstacleId is not None:
                     p.removeBody(self.obstacleId)
                     self.obstacleId = None
-                if random.random() < self.cfg["obstacle_prob"]:
+                if not is_free_motion and random.random() < self.cfg["obstacle_prob"]:
                     self.obstacleId = self._spawn_obstacle(block_pos)
                     self._settle(10)  # let the obstacle settle before planning
 
-                # Plan waypoints: direct for low/medium, bypass→hover→contact for high
-                waypoints = self._plan_waypoints(block_pos)
+                # Plan motion: free-motion goes to a random target; otherwise use waypoints
+                if is_free_motion:
+                    free_target = self._sample_free_target()
+                    waypoints = [free_target]
+                else:
+                    waypoints = self._plan_waypoints(block_pos)
                 n_wps = len(waypoints)
                 base_steps = self.steps_per_iteration // n_wps
                 # Distribute any leftover steps to the last waypoint (contact phase)

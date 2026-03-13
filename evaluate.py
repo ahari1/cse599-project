@@ -30,7 +30,8 @@ import os
 import numpy as np
 import torch
 from sklearn.metrics import (
-    accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+    accuracy_score, precision_score, recall_score, f1_score, roc_auc_score,
+    confusion_matrix
 )
 
 from model import ContactLSTM
@@ -55,10 +56,15 @@ def compute_metrics(y_true, probs, threshold=0.5):
     preds = (probs >= threshold).astype(int)
     y_true_int = y_true.astype(int)
 
-    acc = accuracy_score(y_true_int, preds)
+    acc  = accuracy_score(y_true_int, preds)
     prec = precision_score(y_true_int, preds, zero_division=0)
-    rec = recall_score(y_true_int, preds, zero_division=0)
-    f1 = f1_score(y_true_int, preds, zero_division=0)
+    rec  = recall_score(y_true_int, preds, zero_division=0)
+    f1   = f1_score(y_true_int, preds, zero_division=0)
+
+    # False Positive Rate = FP / (FP + TN)
+    cm = confusion_matrix(y_true_int, preds, labels=[0, 1])
+    tn, fp = cm[0, 0], cm[0, 1]
+    fpr = fp / (fp + tn) if (fp + tn) > 0 else 0.0
 
     # AUC-ROC: handle degenerate case where only one class is present in test set
     try:
@@ -71,6 +77,7 @@ def compute_metrics(y_true, probs, threshold=0.5):
         "precision": round(float(prec), 4),
         "recall":    round(float(rec),  4),
         "f1":        round(float(f1),   4),
+        "fpr":       round(float(fpr),  4),
         "auc_roc":   round(float(auc),  4) if not np.isnan(auc) else None,
         "n_test":    int(len(y_true)),
         "contact_rate_test": round(float(y_true.mean()), 4),
@@ -170,6 +177,20 @@ def main():
             if test_tier in eval_matrix[train_tier]:
                 f1 = eval_matrix[train_tier][test_tier]["f1"]
                 row += f"{f1:>12.4f}"
+            else:
+                row += f"{'N/A':>12s}"
+        print(row)
+
+    print("\n=== FPR Matrix (rows=train, cols=test) ===")
+    print(header)
+    for train_tier in tiers:
+        if train_tier not in eval_matrix:
+            continue
+        row = f"{train_tier:<12s}"
+        for test_tier in tiers:
+            if test_tier in eval_matrix[train_tier]:
+                fpr = eval_matrix[train_tier][test_tier]["fpr"]
+                row += f"{fpr:>12.4f}"
             else:
                 row += f"{'N/A':>12s}"
         print(row)
