@@ -282,7 +282,7 @@ def plot_confusion_matrices(eval_data, processed_dir, checkpoint_dir, tiers, out
                 p  = torch.sigmoid(model(xb)).cpu().numpy()
                 all_preds.extend((p >= 0.5).astype(int).tolist())
 
-        cm = confusion_matrix(y.astype(int), all_preds)
+        cm = confusion_matrix(y.astype(int), all_preds, labels=[0, 1])
         disp = ConfusionMatrixDisplay(
             confusion_matrix=cm,
             display_labels=["No Contact", "Contact"]
