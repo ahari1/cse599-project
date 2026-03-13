@@ -90,13 +90,17 @@ def collect_episode(collector: DataCollector, steps: int):
 
     # ── simulate and record ────────────────────────────────────────────────
     n_wps = len(waypoints)
-    base_steps = steps // n_wps
-    leftover   = steps - base_steps * n_wps
+    if n_wps == 2:
+        contact_steps = int(steps * 0.6)
+        bypass_steps  = steps - contact_steps
+        wp_step_counts = [bypass_steps, contact_steps]
+    else:
+        wp_step_counts = [steps]
 
     positions = []
     for wp_idx, wp_pos in enumerate(waypoints):
         jt = collector._ik_joints(wp_pos)
-        wp_steps = base_steps + (leftover if wp_idx == n_wps - 1 else 0)
+        wp_steps = wp_step_counts[wp_idx]
         for _ in range(wp_steps):
             collector._set_joint_targets(jt)
             p.stepSimulation()

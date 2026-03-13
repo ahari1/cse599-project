@@ -42,7 +42,7 @@ TIER_CONFIG = {
         "obj_theta": (-np.pi, np.pi),            # full 360° — Kuka base joint handles this
         "obj_z":   (0.05, 0.25),
         "obj_yaw": (-np.pi, np.pi),
-        "arm_jitter": 0.40,
+        "arm_jitter": 0.25,
         "path_noise": 0.04,
         # 50% of episodes have an obstacle placed directly in the arm's path
         "obstacle_prob": 0.5,
@@ -274,13 +274,7 @@ class DataCollector:
             HOVER_HEIGHT + 0.10,  # safely above everything
         ]
 
-        hover_pos = [
-            block_pos[0],
-            block_pos[1],
-            block_pos[2] + HOVER_HEIGHT,
-        ]
-
-        return [bypass_pos, hover_pos, contact_pos]
+        return [bypass_pos, contact_pos]
 
     def _build_header(self):
         header = ["iteration", "step", "variability_level",
@@ -344,14 +338,20 @@ class DataCollector:
                 else:
                     waypoints = self._plan_waypoints(block_pos)
                 n_wps = len(waypoints)
-                base_steps = self.steps_per_iteration // n_wps
-                # Distribute any leftover steps to the last waypoint (contact phase)
-                leftover = self.steps_per_iteration - base_steps * n_wps
+                S = self.steps_per_iteration
+                if n_wps == 2:
+                    # bypass 40% | contact 60%
+                    contact_steps = int(S * 0.6)
+                    bypass_steps  = S - contact_steps
+                    wp_step_counts = [bypass_steps, contact_steps]
+                else:
+                    # 1-waypoint (direct contact or free-motion): all steps
+                    wp_step_counts = [S]
 
                 step = 0
                 for wp_idx, wp_pos in enumerate(waypoints):
                     wp_joints = self._ik_joints(wp_pos)
-                    wp_steps = base_steps + (leftover if wp_idx == n_wps - 1 else 0)
+                    wp_steps  = wp_step_counts[wp_idx]
 
                     for _ in range(wp_steps):
                         self._set_joint_targets(wp_joints)
