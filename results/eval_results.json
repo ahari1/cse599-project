@@ -1,0 +1,116 @@
+{
+  "low": {
+    "low": {
+      "accuracy": 0.7878,
+      "precision": 0.6369,
+      "recall": 0.6184,
+      "f1": 0.6275,
+      "fpr": 0.1434,
+      "auc_roc": 0.837,
+      "n_test": 7496,
+      "contact_rate_test": 0.2891,
+      "n_predicted_contact": 2104,
+      "in_distribution": true
+    },
+    "medium": {
+      "accuracy": 0.7665,
+      "precision": 0.4902,
+      "recall": 0.4971,
+      "f1": 0.4936,
+      "fpr": 0.1535,
+      "auc_roc": 0.7746,
+      "n_test": 7496,
+      "contact_rate_test": 0.2289,
+      "n_predicted_contact": 1740,
+      "in_distribution": false
+    },
+    "high": {
+      "accuracy": 0.7938,
+      "precision": 0.2891,
+      "recall": 0.459,
+      "f1": 0.3548,
+      "fpr": 0.1591,
+      "auc_roc": 0.731,
+      "n_test": 7496,
+      "contact_rate_test": 0.1235,
+      "n_predicted_contact": 1470,
+      "in_distribution": false
+    }
+  },
+  "medium": {
+    "low": {
+      "accuracy": 0.7469,
+      "precision": 0.5707,
+      "recall": 0.503,
+      "f1": 0.5347,
+      "fpr": 0.1539,
+      "auc_roc": 0.7745,
+      "n_test": 7496,
+      "contact_rate_test": 0.2891,
+      "n_predicted_contact": 1910,
+      "in_distribution": false
+    },
+    "medium": {
+      "accuracy": 0.7888,
+      "precision": 0.5372,
+      "recall": 0.56,
+      "f1": 0.5484,
+      "fpr": 0.1433,
+      "auc_roc": 0.8084,
+      "n_test": 7496,
+      "contact_rate_test": 0.2289,
+      "n_predicted_contact": 1789,
+      "in_distribution": true
+    },
+    "high": {
+      "accuracy": 0.7729,
+      "precision": 0.2985,
+      "recall": 0.621,
+      "f1": 0.4032,
+      "fpr": 0.2056,
+      "auc_roc": 0.7957,
+      "n_test": 7496,
+      "contact_rate_test": 0.1235,
+      "n_predicted_contact": 1926,
+      "in_distribution": false
+    }
+  },
+  "high": {
+    "low": {
+      "accuracy": 0.713,
+      "precision": 0.5107,
+      "recall": 0.1758,
+      "f1": 0.2616,
+      "fpr": 0.0685,
+      "auc_roc": 0.6402,
+      "n_test": 7496,
+      "contact_rate_test": 0.2891,
+      "n_predicted_contact": 746,
+      "in_distribution": false
+    },
+    "medium": {
+      "accuracy": 0.7701,
+      "precision": 0.4939,
+      "recall": 0.1643,
+      "f1": 0.2466,
+      "fpr": 0.05,
+      "auc_roc": 0.6737,
+      "n_test": 7496,
+      "contact_rate_test": 0.2289,
+      "n_predicted_contact": 571,
+      "in_distribution": false
+    },
+    "high": {
+      "accuracy": 0.8371,
+      "precision": 0.3314,
+      "recall": 0.3132,
+      "f1": 0.322,
+      "fpr": 0.089,
+      "auc_roc": 0.7445,
+      "n_test": 7496,
+      "contact_rate_test": 0.1235,
+      "n_predicted_contact": 875,
+      "in_distribution": true
+    }
+  }
+}
