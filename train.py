@@ -93,7 +93,7 @@ def evaluate_epoch(model, loader, criterion, device, threshold=0.5):
 def train_fold(X_train, y_train, X_val, y_val,
                input_size, args, device, ckpt_path):
     """Train a single fold, return best val metrics and loss history."""
-    pos_weight = torch.tensor([compute_pos_weight(y_train)], device=device)
+    pos_weight = torch.tensor([args.pos_weight]).to(device)
     criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     model = ContactLSTM(
@@ -201,6 +201,8 @@ def main():
     parser.add_argument("--lr",      type=float, default=1e-3)
     parser.add_argument("--patience",type=int, default=7)
     parser.add_argument("--seed",    type=int, default=42)
+    parser.add_argument("--pos_weight", type=float, default=1.0,
+                    help="Positive class weight for BCEWithLogitsLoss") ## testing bce wieghts
     args = parser.parse_args()
 
     set_seed(args.seed)
